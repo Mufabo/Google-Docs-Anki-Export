@@ -19,28 +19,15 @@ This plugin allows content in a Google docs document to be exported to [Anki](ht
     - Nested lists work
     - Ordered (with numbers) does not
 
-# Installation
-
-## Host bundle.js
-- You need to host the **bundle.js** file on a server somewhere.
-  - Google allows free hosting of up to 5GB of traffic a month (which should be plenty for this use case)
-  - See [Google's documentation](https://cloud.google.com/storage/docs/hosting-static-website)
-- Enter the URL of the hosted bundle.js into **sidebar.html** (line 211)
-  - "<script src="[URL TO REACH bundle.js]"></script>"
-
-## Install code into document
-- Create or open a Google docs document.
-- Open [Extensions]/[Apps scripts]
-- Paste code from **code.gs** into the code file that is automatically created (replace the existing code).
-- Create a new HTML file.
-  - Name it "Sidebar" (html extension will be added automatically).
-  - Paste code from **Sidebar.html** into the file you created.
-- Close the document and re-open it.
-- Open Sidebar from [Extensions]/[Anki-Export]/[Show in Sidebar].
-  - Give the script the permissions it asks for.
-
 # Usage
 
+## Create new doc
+
+Use this link to create a copy of the doc with the Extension installed:
+
+!()[https://docs.google.com/document/d/1DqFHs2zA1gfJaWSlqXpZ0uo9yYv6MonVLzWFnrlzWmU/copy]
+
+Accept copying the Apps Script. The extension is not yet published on the marketplace
 ## Format your content
 
 ### Front of cards
