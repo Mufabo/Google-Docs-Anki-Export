@@ -45,7 +45,13 @@ function extractHtmlCardsFromDocument()
   }
   
   var imagesJson = base64EncodeImages(images);
-  cardsAndImages = {deckName:DocumentApp.getActiveDocument().getName(), cards: flashCards, images: imagesJson};
+
+  const ss = DocumentApp.getActiveDocument();
+  const ss_id = ss.getId();
+  const file = DriveApp.getFileById(ss_id);
+  const parent_folders = file.getParents()
+  const folder_name = parent_folders.next().getName(); //desired result
+  cardsAndImages = {deckName:folder_name, cards: flashCards, images: imagesJson};
   
   // images are sent together with the flash cards to the client so that we
   // won't have to process the document again when exporting
