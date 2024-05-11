@@ -25,9 +25,11 @@ This plugin allows content in a Google docs document to be exported to [Anki](ht
 
 Use this link to create a copy of the doc with the Extension installed:
 
-!()[https://docs.google.com/document/d/1DqFHs2zA1gfJaWSlqXpZ0uo9yYv6MonVLzWFnrlzWmU/copy]
+https://docs.google.com/document/d/1DqFHs2zA1gfJaWSlqXpZ0uo9yYv6MonVLzWFnrlzWmU/copy
 
-Accept copying the Apps Script. The extension is not yet published on the marketplace
+Accept copying the Apps Script. 
+The extension is not yet published on the marketplace.
+Wait a bit for the plugin to show up under *Extensions* > *Docs2Anki*
 ## Format your content
 
 ### Front of cards
