@@ -331,7 +331,6 @@ function isHeader(item) {
 }
 
 
-
 function convertFlashCardToHtml(index) {
   var html = [];
 
@@ -375,6 +374,7 @@ function getAbsoluteListItemNestLevel(listItem) {
   var itemNestLevel = listNestLevel + listItem.getNestingLevel();
   return itemNestLevel;
 }
+
 
 
 //points = pixel * 72 / 96
