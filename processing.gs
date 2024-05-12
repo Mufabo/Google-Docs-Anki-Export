@@ -236,7 +236,7 @@ function processItem_V1(item, listCounters, images, imagesOptions, footnotes) {
     var atts = item.getAttributes();
 
     var style = ' style=" width:' + atts.WIDTH + 'px; border: 1px solid black; padding: 5px;"';
-
+  
     prefix = '<td' + style + '>', suffix = "</td>";
     //Logger.log("TABLE_CELL: " + JSON.stringify(item));
   } else if (itemType === DocumentApp.ElementType.FOOTNOTE) {
