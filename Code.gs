@@ -1,7 +1,11 @@
+/**
+ * @OnlyCurrentDoc
+ */
+
 function onOpen(e) {
   DocumentApp.getUi().createAddonMenu()
-      .addItem('Show in sidebar', 'showSidebar')
-      .addToUi();
+    .addItem('Show in sidebar', 'showSidebar')
+    .addToUi();
 }
 
 function onInstall(e) {
@@ -10,7 +14,7 @@ function onInstall(e) {
 
 function showSidebar() {
   var ui = HtmlService.createHtmlOutputFromFile('Sidebar')
-      .setTitle('Anki export');
+    .setTitle('Anki export');
   DocumentApp.getUi().showSidebar(ui);
 }
 
@@ -20,8 +24,7 @@ var listIds = [];
 var listNestLevels = {};
 var listCounters = {};
 
-function extractHtmlCardsFromDocument() 
-{
+function extractHtmlCardsFromDocument() {
   var flashCards = [];
   var images = [];
   var cardsAndImages;
@@ -29,30 +32,28 @@ function extractHtmlCardsFromDocument()
   writeStatusToCache("unknown", 0);
   cards = findFlashCardsInDocument();
   writeStatusToCache(cards.length, 0);
-  
+
   // Walk through all found flash cards
-  for (var i = 0; i < cards.length; i++) 
-  {
+  for (var i = 0; i < cards.length; i++) {
     var fc = cards[i];
     var html = [];
-    for(var j = 0; j < fc.backItems.length; j++)
-    {
-       html.push(processItem_V1(fc.backItems[j], listCounters, images));
+    for (var j = 0; j < fc.backItems.length; j++) {
+      html.push(processItem_V1(fc.backItems[j], listCounters, images));
     }
     var hash = hashCode(fc.front);
-    flashCards.push({front: fc.front, html: html.join('')});
-    writeStatusToCache(cards.length, i+1);
+    flashCards.push({ front: fc.front, html: html.join('') });
+    writeStatusToCache(cards.length, i + 1);
   }
-  
+
   var imagesJson = base64EncodeImages(images);
-  
-  const ss = DocumentApp.getActiveDocument()
+
+  const ss = DocumentApp.getActiveDocument();
   const ss_id = ss.getId();
   const file = DriveApp.getFileById(ss_id);
   const parent_folders = file.getParents()
   const folder_name = parent_folders.next().getName(); //desired result
-  cardsAndImages = {deckName:folder_name, cards: flashCards, images: imagesJson};
-  
+  cardsAndImages = { deckName: folder_name, cards: flashCards, images: imagesJson };
+
   // images are sent together with the flash cards to the client so that we
   // won't have to process the document again when exporting
   // Ideally they should be stored in the CacheService. But since each key can only hold 100kB of data
@@ -60,59 +61,52 @@ function extractHtmlCardsFromDocument()
   return cardsAndImages;
 }
 
-function hashCode(s) 
-{
+function hashCode(s) {
   var h = 0, l = s.length, i = 0;
-  if ( l > 0 )
+  if (l > 0)
     while (i < l)
       h = (h << 5) - h + s.charCodeAt(i++) | 0;
   return h;
 };
 
 // Write status to cache so that client can fetch it and update progress
-function writeStatusToCache(total, current)
-{
+function writeStatusToCache(total, current) {
   var cache = CacheService.getDocumentCache();
-  if(total != null)
+  if (total != null)
     cache.put("total", total);
-  if(current != null)
+  if (current != null)
     cache.put("current", current);
 }
 
 // Called from client to get status
-function readStatusFromCache()
-{
+function readStatusFromCache() {
   var cache = CacheService.getDocumentCache();
   var total = cache.get("total");
   var current = cache.get("current");
-  return {total: total, current:current};
+  return { total: total, current: current };
 }
 
 // Encodes an array of images to base64 and stores them together with name and type in an array and returns its' JSON representation
-function base64EncodeImages(images)
-{
+function base64EncodeImages(images) {
   var base64Images = [];
-  
-  for(var i=0;i<images.length;i++)
-  {
-    var base64Img = Utilities.base64Encode(images[i].blob.getBytes());   
-    base64Images.push({name: images[i].name, type: images[i].type, data:base64Img});
+
+  for (var i = 0; i < images.length; i++) {
+    var base64Img = Utilities.base64Encode(images[i].blob.getBytes());
+    base64Images.push({ name: images[i].name, type: images[i].type, data: base64Img });
   }
 
-  var json = JSON.stringify(base64Images);  
+  var json = JSON.stringify(base64Images);
   return json;
 }
 
 // Takes an json string encoded by base64EncodeImages() and decodes it into an array of image blobs
-function decodeBase64Images(json)
-{
+function decodeBase64Images(json) {
   var base64Images = [];
   var images = [];
-  
+
   var base64Images = JSON.parse(json);
-  
-  for(var i=0;i<base64Images.length;i++)
-  {
+
+  for (var i = 0; i < base64Images.length; i++) {
     var imgBlob = Utilities.newBlob("");
     imgBlob.setBytes(Utilities.base64Decode(base64Images[i].data));
     imgBlob.setName(base64Images[i].name);
@@ -124,34 +118,30 @@ function decodeBase64Images(json)
 
 // Cache can only store 100kB/key
 // so as a workaround all images are sent to client :(
-function storeImagesInCache(images)
-{
+function storeImagesInCache(images) {
   var base64Images = [];
-  
-  for(var i=0;i<images.length;i++)
-  {
-    var base64Img = Utilities.base64Encode(images[i].blob.getBytes());   
-    base64Images.push({name: images[i].name, type: images[i].type, data:base64Img});
+
+  for (var i = 0; i < images.length; i++) {
+    var base64Img = Utilities.base64Encode(images[i].blob.getBytes());
+    base64Images.push({ name: images[i].name, type: images[i].type, data: base64Img });
   }
 
-  var json = JSON.stringify(base64Images);  
+  var json = JSON.stringify(base64Images);
   var cache = CacheService.getDocumentCache();
   cache.put("images", json);
 }
 
 // Cache can only stor 100kB/key
 // so as a workaround all images are sent to client :(
-function readImagesFromCache()
-{
+function readImagesFromCache() {
   var base64Images = [];
   var images = [];
-  
+
   var cache = CacheService.getDocumentCache();
   var json = cache.get("images");
   var base64Images = JSON.parse(json);
-  
-  for(var i=0;i<base64Images.length;i++)
-  {
+
+  for (var i = 0; i < base64Images.length; i++) {
     var imgBlob = Utilites.newBlob("");
     imgBlob.setBytes() = Utilities.base64Decode(base64Images[i].data);
     imgBlob.setName(base64Images[i].name);
@@ -161,11 +151,9 @@ function readImagesFromCache()
   return images;
 }
 
-function createCsvFromCards(cards)
-{
+function createCsvFromCards(cards) {
   var output = [];
-  for(var i=0;i<cards.length;i++)
-  {
+  for (var i = 0; i < cards.length; i++) {
     output.push(cards[i].front);
     output.push('§');
     output.push(cards[i].html);
@@ -216,47 +204,42 @@ function emailHtml(html, images) {
 }
 */
 
-function findFlashCardsInDocument()
-{
+function findFlashCardsInDocument() {
   var cards = [];
   var item = null;
   var doc = DocumentApp.getActiveDocument();
-  
-/* DEBUG CODE - sets a selection so that it can be debugged
-var b = doc.getBody();
-var rangeBuilder = doc.newRange();
-for (var i = 0; i < 25; i++) 
-{
-  rangeBuilder.addElement(b.getChild(i));
-}
-doc.setSelection(rangeBuilder.build());*/
-  
-  var selection = doc.getSelection();
-  if(selection)
+
+  /* DEBUG CODE - sets a selection so that it can be debugged
+  var b = doc.getBody();
+  var rangeBuilder = doc.newRange();
+  for (var i = 0; i < 25; i++) 
   {
+    rangeBuilder.addElement(b.getChild(i));
+  }
+  doc.setSelection(rangeBuilder.build());*/
+
+  var selection = doc.getSelection();
+  if (selection) {
     var selectedItemCount = selection.getRangeElements().length;
     var selectedElements = selection.getRangeElements();
     var indexOfFirstElement = doc.getBody().getChildIndex(selectedElements[0].getElement());
     Logger.log(selectedItemCount);
     var nextElementIdx = 0;
-    while(nextElementIdx < selectedItemCount)
-    {
+    while (nextElementIdx < selectedItemCount) {
       var element = selection.getRangeElements()[nextElementIdx].getElement();
       var type = element.getType().toString();
       // The index of the first selected element needs to be subtracted from the returned index
       nextElementIdx = findFlashCardsInItem(element, cards) - indexOfFirstElement;
     }
   }
-  else
-  {
+  else {
     var body = doc.getBody();
     var children = 0;
-    if(body.getNumChildren)
+    if (body.getNumChildren)
       children = body.getNumChildren();
 
     var nextElementIdx = 0;
-    while(nextElementIdx < children)
-    {
+    while (nextElementIdx < children) {
       var element = body.getChild(nextElementIdx);
       var type = element.getType().toString();
       nextElementIdx = findFlashCardsInItem(element, cards);
@@ -265,69 +248,60 @@ doc.setSelection(rangeBuilder.build());*/
   return cards;
 }
 
-function findFlashCardsInItem(item, cardCollection)
-{
+function findFlashCardsInItem(item, cardCollection) {
   var type = item.getType().toString();
 
-  if(isHeader(item) && !hasSubHeader(item))
-  {
+  if (isHeader(item) && !hasSubHeader(item)) {
     var front = item.getText();
     var backItems = [];
-    
-    do
-    {
+
+    do {
       var nextSibling = item.getNextSibling();
       var nextHeaderLevel = getHeaderLevel(nextSibling);
-      if(nextHeaderLevel == 0)
-      {
+      if (nextHeaderLevel == 0) {
         backItems.push(nextSibling);
         item = nextSibling;
-      }   
+      }
     }
-    while(nextHeaderLevel == 0 && item.getNextSibling())
-    
+    while (nextHeaderLevel == 0 && item.getNextSibling())
+
     // add card
-    cardCollection.push({front: front, backItems: backItems});
+    cardCollection.push({ front: front, backItems: backItems });
   }
   // return index of next document element
-  return item.getParent().getChildIndex(item)+1;
- 
+  return item.getParent().getChildIndex(item) + 1;
+
 }
 
-function hasSubHeader(paragraph)
-{
+function hasSubHeader(paragraph) {
   var type = paragraph.getType().toString();
   var headerLevel = getHeaderLevel(paragraph);
-  
+
   var nextSibling = paragraph.getNextSibling();
-  if(nextSibling == null)
+  if (nextSibling == null)
     return false;
-  
+
   var nextHeaderLevel = getHeaderLevel(nextSibling);
-  while(nextHeaderLevel == 0)
-  {
+  while (nextHeaderLevel == 0) {
     var nextSibling = nextSibling.getNextSibling();
-    if(nextSibling == null)
+    if (nextSibling == null)
       break;
     var nextHeaderLevel = getHeaderLevel(nextSibling);
   }
-  
+
   return headerLevel < nextHeaderLevel;
 }
 
-function getHeaderLevel(paragraph)
-{
-  if(paragraph == null)
+function getHeaderLevel(paragraph) {
+  if (paragraph == null)
     return -1;
-  
-  if(paragraph.getHeading)
-  {
+
+  if (paragraph.getHeading) {
     var heading = paragraph.getHeading();
-    switch (heading) 
-    {
-      case DocumentApp.ParagraphHeading.HEADING6: 
+    switch (heading) {
+      case DocumentApp.ParagraphHeading.HEADING6:
         return 6;
-      case DocumentApp.ParagraphHeading.HEADING5: 
+      case DocumentApp.ParagraphHeading.HEADING5:
         return 5;
       case DocumentApp.ParagraphHeading.HEADING4:
         return 4;
@@ -337,7 +311,7 @@ function getHeaderLevel(paragraph)
         return 2;
       case DocumentApp.ParagraphHeading.HEADING1:
         return 1;
-      default: 
+      default:
         return 0;
     }
   }
@@ -346,21 +320,18 @@ function getHeaderLevel(paragraph)
 }
 
 
-function isHeader(item)
-{  
+function isHeader(item) {
   var text = ""
-  if(item.getText)
-  {
+  if (item.getText) {
     text = item.getText();
-    if(text.trim().length ==0)
+    if (text.trim().length == 0)
       return false; // 0 length headers are considered invalid!
   }
   return getHeaderLevel(item) > 0;
 }
 
 
-function processImage(item, images, output)
-{
+function processImage(item, images, output) {
   images = images || [];
   var blob = item.getBlob();
   var contentType = blob.getContentType();
@@ -372,33 +343,33 @@ function processImage(item, images, output)
   } else if (/\/jpe?g$/.test(contentType)) {
     extension = ".jpg";
   } else {
-    throw "Unsupported image type: "+contentType;
+    throw "Unsupported image type: " + contentType;
   }
-  var imagePrefix = DocumentApp.getActiveDocument().getName()+"_image_";
+  var imagePrefix = DocumentApp.getActiveDocument().getName() + "_image_";
   var imageCounter = images.length;
   var name = imagePrefix + imageCounter + extension;
   blob.setName(name);
   imageCounter++;
-  output.push('<br><img src="'+name+'" />');
-  images.push( {
+  output.push('<br><img src="' + name + '" />');
+  images.push({
     "blob": blob,
     "type": contentType,
-    "name": name});
+    "name": name
+  });
 }
 
-function convertFlashCardToHtml(index)
-{
+function convertFlashCardToHtml(index) {
   var html = [];
-  
+
   //get card from cache
   var cache = CacheService.getPublicCache();
   var cardsJson = cache.get("cards");
   cards = JSON.parse(cardsJson);
   Logger.log(cards);
-  
-  for(var i = 0; i < cards[index].backItems.length; i++)
+
+  for (var i = 0; i < cards[index].backItems.length; i++)
     html.push(processItem_V1(cards[index].backItems[i], listCounters, images));
-  
+
   return html;
 }
 
@@ -423,8 +394,7 @@ function dumpAttributes(atts) {
   }
 }
 
-function getAbsoluteListItemNestLevel(listItem)
-{
+function getAbsoluteListItemNestLevel(listItem) {
   // get base nest level of list
   // (always depending on context of list)
   var listNestLevel = listNestLevels[listItem.getListId()] || 0;
@@ -441,45 +411,44 @@ function getAbsoluteListItemNestLevel(listItem)
 function processItem_V1(item, listCounters, images, imagesOptions, footnotes) {
   var output = [];
   var prefix = "",
-      suffix = "";
+    suffix = "";
   var style = "";
-  
+
   var hasPositionedImages = false;
-  if (item.getPositionedImages) 
-  {
+  if (item.getPositionedImages) {
     positionedImages = item.getPositionedImages();
     hasPositionedImages = true;
   }
-  
+
   var itemType = item.getType();
-  
+
   if (itemType === DocumentApp.ElementType.PARAGRAPH) {
     //https://developers.google.com/apps-script/reference/document/paragraph
-    
+
     if (item.getNumChildren() == 0) {
       return "<br />";
     }
-    
+
     var p = "";
-    
+
     if (item.getIndentStart() != null) {
       p += "margin-left:" + item.getIndentStart() + "; ";
     } else {
       // p += "margin-left: 0; "; // superfluous
     }
-    
+
     // what does getIndentEnd actually do? the value is the same as in getIndentStart
     /*if (item.getIndentEnd() != null) {
     p += "margin-right:" + item.getIndentStart() + "; ";
     } else {
     // p += "margin-right: 0; "; // superfluous
     }*/
-    
+
     //Text Alignment
     switch (item.getAlignment()) {
-        // Add a # for each heading level. No break, so we accumulate the right number.
-        //case DocumentApp.HorizontalAlignment.LEFT:
-        //  p += "text-align: left;"; break;
+      // Add a # for each heading level. No break, so we accumulate the right number.
+      //case DocumentApp.HorizontalAlignment.LEFT:
+      //  p += "text-align: left;"; break;
       case DocumentApp.HorizontalAlignment.CENTER:
         p += "text-align: center;";
         break;
@@ -492,23 +461,23 @@ function processItem_V1(item, listCounters, images, imagesOptions, footnotes) {
       default:
         p += "";
     }
-    
+
     //TODO: getLineSpacing(line-height), getSpacingBefore(margin-top), getSpacingAfter(margin-bottom),
-    
+
     //TODO: 
     //INDENT_END      Enum  The end indentation setting in points, for paragraph elements.
     //INDENT_FIRST_LINE Enum  The first line indentation setting in points, for paragraph elements.
     //INDENT_START      Enum  The start indentation setting in points, for paragraph elements.
-    
+
     if (p !== "") {
       style = 'style="' + p + '"';
     }
-    
+
     //TODO: add DocumentApp.ParagraphHeading.TITLE, DocumentApp.ParagraphHeading.SUBTITLE
-    
+
     //Heading or only paragraph
     switch (item.getHeading()) {
-        // Add a # for each heading level. No break, so we accumulate the right number.
+      // Add a # for each heading level. No break, so we accumulate the right number.
       case DocumentApp.ParagraphHeading.HEADING6:
         prefix = "<h6 " + style + ">", suffix = "</h6>";
         break;
@@ -530,95 +499,90 @@ function processItem_V1(item, listCounters, images, imagesOptions, footnotes) {
       default:
         prefix = "<p " + style + ">", suffix = "</p>";
     }
-    
+
     var attr = item.getAttributes();
-    
+
   } else if (itemType === DocumentApp.ElementType.INLINE_IMAGE) {
     processImage(item, images, output, imagesOptions);
   } else if (itemType === DocumentApp.ElementType.INLINE_DRAWING) {
     //TODO
     Logger.log("INLINE_DRAWING: " + JSON.stringify(item));
-  } 
+  }
   else if (itemType === DocumentApp.ElementType.LIST_ITEM) {
     var listItem = item;
     var text = listItem.getText();
     var gt = listItem.getGlyphType();
     var key = listItem.getListId()// + '.' + listItem.getNestingLevel();
-    
-    if(listIds.indexOf(key) <0)
-    {
+
+    if (listIds.indexOf(key) < 0) {
       listIds.push(key);
       prefix += "<ul>"//;, suffix = '</ul>';
       globalNestedListLevel++;
       listNestLevels[key] = globalNestedListLevel;
     }
-    
+
     // get base nest level of list
     // (always depending on context of list)
     var listNestLevel = listNestLevels[key] || 0;
     var itemNestLevel = getAbsoluteListItemNestLevel(listItem);//)listNestLevel + listItem.getNestingLevel();
-    
-    while(itemNestLevel > globalNestedListLevel)
-    {
+
+    while (itemNestLevel > globalNestedListLevel) {
       prefix += "<ul>"//;, suffix = '</ul>';
       globalNestedListLevel++;
     }
-    
-    
+
+
     prefix += "<li>", suffix = '</li>';
-    
+
     // list added - increase counter
     var counter = listCounters[key + "." + itemNestLevel] || 0;
     counter++;
-    listCounters[key + "." + itemNestLevel] = counter; 
-    
+    listCounters[key + "." + itemNestLevel] = counter;
+
     // debug
     //prefix += ' ' + key + " - " + listItem.getNestingLevel().toString() + " - ";
-    
+
     var nextSibling = listItem.getNextSibling();
     //var nextSiblingType = nextSibling.getType().toString();
     var isAtDocumentEnd = listItem.isAtDocumentEnd();
     var nextIsListItem = (nextSibling && (nextSibling.getType() == DocumentApp.ElementType.LIST_ITEM));
     var nextIsSameListId = false;
-    if(nextIsListItem)
+    if (nextIsListItem)
       nextIsSameListId = nextSibling.getListId() == listItem.getListId();
     var currentNestingLevel = listItem.getNestingLevel();
-    
+
     var nextNestingLevel = false;
-    if(nextIsListItem)
-    {
+    if (nextIsListItem) {
       // known list? Get absolute nesting level!
-      if(listIds.indexOf(nextSibling.getListId())>=0)
+      if (listIds.indexOf(nextSibling.getListId()) >= 0)
         nextNestingLevel = getAbsoluteListItemNestLevel(nextSibling);
       else // else global nesting level is base
         nextNestingLevel = globalNestedListLevel + nextSibling.getNestingLevel();
     }
     var nextIsLowerNestingLevel = (nextIsListItem && (nextNestingLevel < globalNestedListLevel));
-    
-    while( (isAtDocumentEnd || (!nextIsListItem) || nextIsLowerNestingLevel  ) && globalNestedListLevel >= 0) 
-    {
+
+    while ((isAtDocumentEnd || (!nextIsListItem) || nextIsLowerNestingLevel) && globalNestedListLevel >= 0) {
       suffix += "</ul>";
       globalNestedListLevel--;
-      
+
       nextSibling = listItem.getNextSibling();
-    //  nextSiblingType = nextSibling.getType().toString();
+      //  nextSiblingType = nextSibling.getType().toString();
       isAtDocumentEnd = listItem.isAtDocumentEnd();
       nextIsListItem = (nextSibling && (nextSibling.getType() == DocumentApp.ElementType.LIST_ITEM));
       nextIsSameListId = false;
-      if(nextIsListItem)
+      if (nextIsListItem)
         nextIsSameListId = nextSibling.getListId() != listItem.getListId();
-      
+
       nextNestingLevel = false;
-      if(nextIsListItem)
-      {
+      if (nextIsListItem) {
         // known list? Get absolute nesting level!
-        if(listIds.indexOf(nextSibling.getListId())>0)
+        if (listIds.indexOf(nextSibling.getListId()) > 0)
           nextNestingLevel = getAbsoluteListItemNestLevel(nextSibling);
         else // else global nesting level is base
           nextNestingLevel = globalNestedListLevel + nextSibling.getNestingLevel();
       }
       var nextIsLowerNestingLevel = (nextIsListItem && (nextNestingLevel < globalNestedListLevel));
-      
+
       nextIsLowerNestingLevel = (nextIsListItem && (getAbsoluteListItemNestLevel(nextSibling) < globalNestedListLevel));
     }
     //   else
@@ -630,22 +594,22 @@ function processItem_V1(item, listCounters, images, imagesOptions, footnotes) {
     var row = item.getRow(0)
     var numCells = row.getNumCells();
     var tableWidth = 0;
-    
+
     for (var i = 0; i < numCells; i++) {
       tableWidth += item.getColumnWidth(i);
     }
     Logger.log("TABLE tableWidth: " + tableWidth);
-    
+
     //https://stackoverflow.com/questions/339923/set-cellpadding-and-cellspacing-in-css
     var style = ' style="border-collapse: collapse; width:' + tableWidth + 'px; "';
-    
+
     prefix = '<table' + style + '>', suffix = "</table>";
     //Logger.log("TABLE: " + JSON.stringify(item));
   } else if (itemType === DocumentApp.ElementType.TABLE_ROW) {
-    
+
     var minimumHeight = item.getMinimumHeight();
     Logger.log("TABLE_ROW getMinimumHeight: " + minimumHeight);
-    
+
     prefix = "<tr>", suffix = "</tr>";
     //Logger.log("TABLE_ROW: " + JSON.stringify(item));
   } else if (itemType === DocumentApp.ElementType.TABLE_CELL) {
@@ -660,21 +624,21 @@ function processItem_V1(item, listCounters, images, imagesOptions, footnotes) {
     VERTICAL_ALIGNMENT  Enum  The vertical alignment setting, for table cell elements.
     WIDTH         Enum  The width setting, for table cell and image elements.
     */
-    
+
     //https://wiki.selfhtml.org/wiki/HTML/Tabellen/Zellen_verbinden
     var colSpan = item.getColSpan();
     Logger.log("TABLE_CELL getColSpan: " + colSpan);
     // colspan="3"
-    
+
     var rowSpan = item.getRowSpan();
     Logger.log("TABLE_CELL getRowSpan: " + rowSpan);
     // rowspan ="3"
-    
+
     //TODO: WIDTH must be recalculated in percent
     var atts = item.getAttributes();
-    
+
     var style = ' style=" width:' + atts.WIDTH + 'px; border: 1px solid black; padding: 5px;"';
-    
+
     prefix = '<td' + style + '>', suffix = "</td>";
     //Logger.log("TABLE_CELL: " + JSON.stringify(item));
   } else if (itemType === DocumentApp.ElementType.FOOTNOTE) {
@@ -697,29 +661,29 @@ function processItem_V1(item, listCounters, images, imagesOptions, footnotes) {
   } else if (itemType === DocumentApp.ElementType.UNSUPPORTED) {
     Logger.log("UNSUPPORTED: " + JSON.stringify(item));
   }
-  
+
   output.push(prefix);
-  
+
   if (hasPositionedImages === true) {
     processPositionedImages(positionedImages, images, output, imagesOptions);
   }
-  
+
   if (item.getType() == DocumentApp.ElementType.TEXT) {
     processText(item, output);
   } else {
-    
+
     if (item.getNumChildren) {
       var numChildren = item.getNumChildren();
-      
+
       // Walk through all the child elements of the doc.
       for (var i = 0; i < numChildren; i++) {
         var child = item.getChild(i);
         output.push(processItem_V1(child, listCounters, images, imagesOptions, footnotes));
       }
     }
-    
+
   }
-  
+
   output.push(suffix);
   return output.join('');
 }
@@ -752,28 +716,26 @@ function emToPixel(em) {
 function processText(item, output) {
   var text = item.getText();
   var indices = item.getTextAttributeIndices();
-  
-  if (text === '\r') 
-  {
+
+  if (text === '\r') {
     Logger.log("\\r: ");
     return;
   }
-  
-  for (var i = 0; i < indices.length; i++)
-  {
+
+  for (var i = 0; i < indices.length; i++) {
     var partAtts = item.getAttributes(indices[i]);
     var startPos = indices[i];
     var endPos = i + 1 < indices.length ? indices[i + 1] : text.length;
     var partText = text.substring(startPos, endPos);
-    
+
     partText = partText.replace(new RegExp("(\r)", 'g'), "<br/>");
     //Logger.log(partText);
     dumpAttributes(partAtts);
-    
+
     //TODO if only ITALIC use: <blockquote></blockquote>
-    
+
     //TODO: change html tags to css (i, strong, u)
-    
+
     //css font-style:italic;
     if (partAtts.ITALIC) {
       output.push('<i>');
@@ -786,9 +748,9 @@ function processText(item, output) {
     if (partAtts.UNDERLINE) {
       output.push('<u>');
     }
-    
+
     var style = "";
-    
+
     // font family, color and size changes disabled
     /*if (partAtts.FONT_FAMILY) {
     style = style + 'font-family: ' + partAtts.FONT_FAMILY + '; ';
@@ -807,7 +769,7 @@ function processText(item, output) {
     if (partAtts.STRIKETHROUGH) {
       style = style + 'text-decoration: line-through; ';
     }
-    
+
     var a = item.getTextAlignment(startPos);
     if (a !== DocumentApp.TextAlignment.NORMAL && a !== null) {
       if (a === DocumentApp.TextAlignment.SUBSCRIPT) {
@@ -816,7 +778,7 @@ function processText(item, output) {
         style = style + 'vertical-align : super; font-size : 60%; ';
       }
     }
-    
+
     // If someone has written [xxx] and made this whole text some special font, like superscript
     // then treat it as a reference and make it superscript.
     // Unfortunately in Google Docs, there's no way to detect superscript
@@ -841,7 +803,7 @@ function processText(item, output) {
       }
       output.push(partText);
     }
-    
+
     if (partAtts.ITALIC) {
       output.push('</i>');
     }
@@ -851,7 +813,7 @@ function processText(item, output) {
     if (partAtts.UNDERLINE) {
       output.push('</u>');
     }
-    
+
   }
   //}
 }
